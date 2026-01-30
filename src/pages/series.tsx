@@ -100,10 +100,10 @@ const SeriesPage = () => {
               <Badge className={statusColors[series.status as keyof typeof statusColors] || statusColors.ongoing}>
                 {series.status.charAt(0).toUpperCase() + series.status.slice(1)}
               </Badge>
-              {series.rating !== null && (
+              {series.rating !== null && series.rating !== undefined && (
                 <span className="text-sm font-medium flex items-center gap-1 text-yellow-500">
                   <Star className="h-4 w-4 fill-yellow-500" />
-                  {series.rating.toFixed(1)} / 10
+                  {Number(series.rating).toFixed(1)} / 10
                 </span>
               )}
               <span className="text-sm text-muted-foreground flex items-center gap-1">
