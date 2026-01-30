@@ -1,8 +1,101 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const REGION_CANDIDATES = ["", "ny", "la", "sg", "de", "uk", "syd", "br"] as const;
+
+function uniqueStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items) {
+    const v = item.trim();
+    if (!v) continue;
+    if (!seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
+  }
+  return out;
+}
+
+function regionToHost(region: string): string {
+  return region ? `${region}.storage.bunnycdn.com` : "storage.bunnycdn.com";
+}
+
+function buildHostCandidates(configuredRegion: string): string[] {
+  // Try configured region first (if any), then the default host, then common regions.
+  return uniqueStrings([
+    regionToHost(configuredRegion || ""),
+    ...REGION_CANDIDATES.map((r) => regionToHost(r)),
+  ]);
+}
+
+async function tryBunnyPut(params: {
+  hosts: string[];
+  storageZone: string;
+  path: string;
+  apiKey: string;
+  contentType: string;
+  body: ArrayBuffer;
+}): Promise<{ publicStorageHost: string; detectedRegion?: string } | { error: string }> {
+  let last401 = false;
+  let lastError: { status: number; body: string; host: string } | null = null;
+
+  for (const host of params.hosts) {
+    const uploadUrl = `https://${host}/${params.storageZone}/${params.path}`;
+    console.log("Uploading to:", uploadUrl);
+
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        AccessKey: params.apiKey,
+        "Content-Type": params.contentType,
+      },
+      body: params.body,
+    });
+
+    if (res.ok) {
+      const detectedRegion = host === "storage.bunnycdn.com" ? "" : host.split(".")[0];
+      return {
+        publicStorageHost: host,
+        detectedRegion,
+      };
+    }
+
+    const text = await res.text();
+    console.error("Bunny upload error:", text);
+    console.error("Status:", res.status);
+    lastError = { status: res.status, body: text, host };
+
+    if (res.status === 401) {
+      last401 = true;
+      // Keep trying other regions/hosts.
+      continue;
+    }
+
+    // Non-auth error: stop immediately.
+    return { error: `Bunny upload failed on ${host} [${res.status}]: ${text}` };
+  }
+
+  if (last401) {
+    const attempted = params.hosts.join(", ");
+    const hint =
+      "Bunny responded 401 for all tested endpoints. This usually means either BUNNY_STORAGE_API_KEY is not the Storage Zone Password, or BUNNY_STORAGE_ZONE is not the exact storage zone name.";
+    const last = lastError
+      ? ` Last response on ${lastError.host}: ${lastError.body}`
+      : "";
+    return {
+      error:
+        `${hint} Attempted hosts: ${attempted}.` +
+        ` If your storage zone is region-specific, set BUNNY_STORAGE_REGION to one of: ${REGION_CANDIDATES.filter(Boolean).join(", ")}.` +
+        last,
+    };
+  }
+
+  return { error: "Failed to upload file to storage" };
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -47,27 +140,45 @@ Deno.serve(async (req) => {
     const path = formData.get("path") as string;
     const action = (formData.get("action") as string) || "upload";
 
-    // Build storage URL with optional region
-    const storageHost = storageRegion
-      ? `${storageRegion}.storage.bunnycdn.com`
-      : "storage.bunnycdn.com";
+    const hostCandidates = buildHostCandidates(storageRegion);
 
     if (action === "delete") {
       // Delete file from Bunny.net
-      const deleteUrl = `https://${storageHost}/${storageZone}/${path}`;
-      console.log("Deleting from:", deleteUrl);
+      // Try delete against host candidates (some zones require region-specific host)
+      let deleted = false;
+      let lastErr: { status: number; body: string; host: string } | null = null;
 
-      const deleteResponse = await fetch(deleteUrl, {
-        method: "DELETE",
-        headers: {
-          AccessKey: apiKey,
-        },
-      });
+      for (const host of hostCandidates) {
+        const deleteUrl = `https://${host}/${storageZone}/${path}`;
+        console.log("Deleting from:", deleteUrl);
 
-      if (!deleteResponse.ok && deleteResponse.status !== 404) {
+        const deleteResponse = await fetch(deleteUrl, {
+          method: "DELETE",
+          headers: {
+            AccessKey: apiKey,
+          },
+        });
+
+        if (deleteResponse.ok || deleteResponse.status === 404) {
+          deleted = true;
+          break;
+        }
+
         const errorText = await deleteResponse.text();
         console.error("Bunny delete error:", errorText);
-        throw new Error("Failed to delete file");
+        lastErr = { status: deleteResponse.status, body: errorText, host };
+
+        if (deleteResponse.status === 401) {
+          continue;
+        }
+
+        throw new Error(`Failed to delete file on ${host} [${deleteResponse.status}]: ${errorText}`);
+      }
+
+      if (!deleted) {
+        throw new Error(
+          `Failed to delete file from storage (auth failed). Last: ${lastErr?.host} [${lastErr?.status}] ${lastErr?.body}`
+        );
       }
 
       return new Response(JSON.stringify({ success: true }), {
@@ -89,46 +200,45 @@ Deno.serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    const uploadUrl = `https://${storageHost}/${storageZone}/${path}`;
-    console.log("Uploading to:", uploadUrl);
     console.log("File size:", uint8Array.length, "bytes");
     console.log("Content-Type:", file.type);
 
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        AccessKey: apiKey,
-        "Content-Type": file.type || "application/octet-stream",
-      },
-      body: uint8Array,
+    const putResult = await tryBunnyPut({
+      hosts: hostCandidates,
+      storageZone,
+      path,
+      apiKey,
+      contentType: file.type || "application/octet-stream",
+      body: arrayBuffer,
     });
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error("Bunny upload error:", errorText);
-      console.error("Status:", uploadResponse.status);
-      
-      if (uploadResponse.status === 401) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Storage authentication failed. Please verify BUNNY_STORAGE_API_KEY is the Storage Zone Password (not Account API Key)." 
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      
-      throw new Error(`Failed to upload file: ${errorText}`);
+    if ("error" in putResult) {
+      return new Response(JSON.stringify({ error: putResult.error }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (putResult.detectedRegion && putResult.detectedRegion !== storageRegion) {
+      console.log(
+        `Detected Bunny storage region '${putResult.detectedRegion}'. Consider setting BUNNY_STORAGE_REGION to avoid retries.`
+      );
     }
 
     const publicUrl = `https://${cdnHostname}/${path}`;
     console.log("Upload successful, public URL:", publicUrl);
 
-    return new Response(JSON.stringify({ url: publicUrl }), {
+    return new Response(
+      JSON.stringify({
+        url: publicUrl,
+        // Extra debug info (safe to expose):
+        storage_host_used: putResult.publicStorageHost,
+        detected_region: putResult.detectedRegion,
+      }),
+      {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      }
+    );
   } catch (error) {
     console.error("Upload error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
