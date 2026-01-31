@@ -94,3 +94,13 @@ export function generateFilePath(
   const basePath = prefix ? `${folder}/${prefix}` : folder;
   return `${basePath}/${timestamp}.${ext}`;
 }
+
+// Helper to generate chapter page paths with proper folder structure
+export function generateChapterPagePath(
+  seriesId: string,
+  chapterNumber: number,
+  pageNumber: number,
+  extension: string
+): string {
+  return `chapters/${seriesId}/ch-${chapterNumber}/${pageNumber}.${extension}`;
+}

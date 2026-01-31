@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSeries, useChapters, useCreateChapter, useDeleteChapter, useUpdateChapter } from "@/hooks/useSeries";
-import { uploadFile, generateFilePath } from "@/lib/storage";
+import { uploadFile, generateFilePath, generateChapterPagePath } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,9 +126,11 @@ const ChapterManager = () => {
         if (error) throw new Error(error);
         pdfUrl = url;
       } else if (chapterType === "images" && imageFiles.length > 0) {
+        const chapterNum = parseFloat(chapterNumber);
         const uploadedPages = await Promise.all(
           imageFiles.map(async (file, index) => {
-            const path = generateFilePath("chapters", file.name, `${seriesId}/${Date.now()}_${index}`);
+            const ext = file.name.split('.').pop() || 'jpg';
+            const path = generateChapterPagePath(seriesId, chapterNum, index + 1, ext);
             const { url, error } = await uploadFile(file, path);
             if (error) throw new Error(error);
             return {
