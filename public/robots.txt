@@ -1,8 +1,12 @@
 User-agent: Googlebot
 Allow: /
+Allow: /browse
+Allow: /series/
 
 User-agent: Bingbot
 Allow: /
+Allow: /browse
+Allow: /series/
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +16,13 @@ Allow: /
 
 User-agent: *
 Allow: /
+Allow: /browse
+Allow: /series/
+Disallow: /admin
+Disallow: /admin/
+
+# Sitemaps
+Sitemap: https://bntoon.com/sitemap.xml
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1
