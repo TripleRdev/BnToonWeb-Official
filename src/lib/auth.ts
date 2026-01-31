@@ -5,7 +5,7 @@ import type { User, Session } from "@supabase/supabase-js";
 // This is checked on both frontend AND backend (Edge Functions)
 export const ADMIN_EMAILS = [
   "admin@bntoon.com",
-  // Add more admin emails here
+  "bntoonweb@gmail.com",
 ];
 
 export function isAdminEmail(email: string | undefined): boolean {

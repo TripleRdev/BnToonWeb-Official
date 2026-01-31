@@ -9,7 +9,7 @@ const corsHeaders = {
 // Admin email allowlist - must match frontend list
 const ADMIN_EMAILS = [
   "admin@bntoon.com",
-  // Add more admin emails here
+  "bntoonweb@gmail.com",
 ];
 
 function isAdminEmail(email: string | undefined): boolean {
