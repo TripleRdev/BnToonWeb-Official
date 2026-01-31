@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useSeriesWithLatestChapters, useFeaturedSeries } from "@/hooks/useSeriesWithLatestChapters";
-import { FeaturedHero } from "@/components/home/FeaturedHero";
+import { FeaturedSection } from "@/components/home/FeaturedSection";
 import { LatestUpdateCard } from "@/components/home/LatestUpdateCard";
 import { PopularSidebar } from "@/components/home/PopularSidebar";
+import { JoinUsCard } from "@/components/home/JoinUsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 
@@ -57,39 +58,42 @@ const Index = () => {
   return (
     <Layout>
       <div className="min-h-screen">
-        {/* Hero Featured Section */}
-        {isFeaturedLoading ? (
-          <div className="relative w-full bg-gradient-to-b from-[hsl(220,15%,6%)] to-background">
-            <div className="container mx-auto px-4 py-16">
-              <div className="grid lg:grid-cols-[1fr_380px] gap-12 items-center min-h-[480px]">
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                  </div>
-                  <Skeleton className="h-14 w-3/4" />
-                  <Skeleton className="h-6 w-full" />
-                  <Skeleton className="h-6 w-2/3" />
-                  <div className="flex gap-3 pt-4">
-                    <Skeleton className="h-12 w-36 rounded-xl" />
-                    <Skeleton className="h-12 w-28 rounded-xl" />
-                  </div>
-                </div>
-                <div className="flex justify-center lg:justify-end">
-                  <Skeleton className="w-64 lg:w-80 aspect-[3/4] rounded-2xl" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : featuredSeries.length > 0 ? (
-          <FeaturedHero series={featuredSeries} />
-        ) : null}
-
         {/* Main Content Grid */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6">
           <div className="grid lg:grid-cols-4 gap-6">
-            {/* Left Column - Latest Updates */}
+            {/* Left Column - Featured + Latest Updates */}
             <div className="lg:col-span-3">
+              {/* Featured Section */}
+              {isFeaturedLoading ? (
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-1 h-6 bg-primary rounded-full" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Skeleton className="w-full sm:w-32 aspect-[3/4] rounded-lg" />
+                      <div className="flex-1 space-y-3">
+                        <div className="flex gap-2">
+                          <Skeleton className="h-5 w-16 rounded" />
+                          <Skeleton className="h-5 w-16 rounded" />
+                        </div>
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-8 w-24 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : featuredSeries.length > 0 ? (
+                <FeaturedSection series={featuredSeries} />
+              ) : null}
+
+              {/* Ad Container */}
+              <div id="container-c35c6f6f42ee902bbfca715ccd1d497f" className="mb-6"></div>
+
+              {/* Latest Updates Section */}
               <section>
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-3">
@@ -104,11 +108,6 @@ const Index = () => {
                     <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 </div>
-                
-                 <div id="container-c35c6f6f42ee902bbfca715ccd1d497f"></div>
-
-                
-
                 
                 {isLatestLoading ? (
                   <div className="bg-card rounded-xl border border-border divide-y divide-border">
@@ -155,9 +154,10 @@ const Index = () => {
               </section>
             </div>
 
-            {/* Right Sidebar - Popular */}
+            {/* Right Sidebar */}
             <div className="space-y-6">
               <PopularSidebar />
+              <JoinUsCard />
             </div>
           </div>
         </div>
