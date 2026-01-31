@@ -6,6 +6,7 @@ import { FeaturedSection } from "@/components/home/FeaturedSection";
 import { LatestUpdateCard } from "@/components/home/LatestUpdateCard";
 import { PopularSidebar } from "@/components/home/PopularSidebar";
 import { JoinUsCard } from "@/components/home/JoinUsCard";
+import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 
@@ -57,7 +58,8 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen">
+      <SEO />
+      <main className="min-h-screen">
         {/* Main Content Grid */}
         <div className="container mx-auto px-4 py-6">
           <div className="grid lg:grid-cols-4 gap-6">
@@ -161,7 +163,7 @@ const Index = () => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </Layout>
   );
 };

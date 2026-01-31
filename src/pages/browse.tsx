@@ -3,6 +3,7 @@ import { BrowseCard } from "@/components/browse/BrowseCard";
 import { useBrowseSeries } from "@/hooks/useBrowseSeries";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useGenres } from "@/hooks/useGenres";
+import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
@@ -78,7 +79,11 @@ const Browse = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <SEO 
+        title="Browse Comics"
+        description="Explore our collection of manga and comics. Filter by genre and find your next favorite series."
+      />
+      <main className="container mx-auto px-4 py-8 md:py-12">
 
         {/* Header */}
         <div className="mb-8">
@@ -181,7 +186,7 @@ const Browse = () => {
             <p>No series found.</p>
           </div>
         )}
-      </div>
+      </main>
 
       <BackToTop />
     </Layout>

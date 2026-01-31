@@ -6,6 +6,7 @@ import { MinimalHeader } from "@/components/reader/MinimalHeader";
 import { MinimalImageReader } from "@/components/reader/MinimalImageReader";
 import { MinimalPDFReader } from "@/components/reader/MinimalPDFReader";
 import { EndNavigation } from "@/components/reader/EndNavigation";
+import { SEO, generateChapterDescription } from "@/components/SEO";
 import { Home } from "lucide-react";
 
 const Reader = () => {
@@ -40,20 +41,23 @@ const Reader = () => {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-lg font-medium mb-4 text-foreground">
-            Chapter not found
-          </h1>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Home className="h-4 w-4" />
-            Go Home
-          </Link>
+      <>
+        <SEO title="Chapter not found" noindex />
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-lg font-medium mb-4 text-foreground">
+              Chapter not found
+            </h1>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              Go Home
+            </Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -69,35 +73,57 @@ const Reader = () => {
       ? sortedChapters[currentIndex + 1]
       : null;
 
+  // Generate SEO content
+  const seoTitle = series
+    ? `${series.title} Chapter ${chapter.chapter_number}${chapter.title ? ` - ${chapter.title}` : ""}`
+    : `Chapter ${chapter.chapter_number}`;
+  
+  const seoDescription = series
+    ? generateChapterDescription(series.title, chapter.chapter_number, chapter.title || undefined)
+    : `Read Chapter ${chapter.chapter_number} online.`;
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Minimal Header */}
-      {chapters && chapters.length > 0 && (
-        <MinimalHeader
-          seriesId={chapter.series_id}
-          seriesTitle={series?.title}
-          currentChapter={chapter}
-          chapters={chapters}
-          prevChapter={prevChapter}
-          nextChapter={nextChapter}
-        />
-      )}
+    <>
+      <SEO
+        title={seoTitle}
+        description={seoDescription}
+        image={series?.cover_url || undefined}
+        type="article"
+      />
 
-      {/* Spacer for fixed header */}
-      <div className="h-12" />
-
-      {/* Reading Area */}
-      <main className="py-4">
-        {chapter.chapter_type === "pdf" && chapter.pdf_url ? (
-          <MinimalPDFReader pdfUrl={chapter.pdf_url} />
-        ) : (
-          <MinimalImageReader pages={pages} />
+      <article className="min-h-screen bg-background">
+        {/* Minimal Header */}
+        {chapters && chapters.length > 0 && (
+          <MinimalHeader
+            seriesId={chapter.series_id}
+            seriesTitle={series?.title}
+            currentChapter={chapter}
+            chapters={chapters}
+            prevChapter={prevChapter}
+            nextChapter={nextChapter}
+          />
         )}
-      </main>
 
-      {/* End Navigation */}
-      <EndNavigation prevChapter={prevChapter} nextChapter={nextChapter} />
-    </div>
+        {/* Spacer for fixed header */}
+        <div className="h-12" aria-hidden="true" />
+
+        {/* Reading Area */}
+        <main className="py-4">
+          <header className="sr-only">
+            <h1>{seoTitle}</h1>
+          </header>
+          
+          {chapter.chapter_type === "pdf" && chapter.pdf_url ? (
+            <MinimalPDFReader pdfUrl={chapter.pdf_url} />
+          ) : (
+            <MinimalImageReader pages={pages} />
+          )}
+        </main>
+
+        {/* End Navigation */}
+        <EndNavigation prevChapter={prevChapter} nextChapter={nextChapter} />
+      </article>
+    </>
   );
 };
 

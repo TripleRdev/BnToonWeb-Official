@@ -11,26 +11,27 @@ interface MinimalImageReaderProps {
   pages: Page[];
 }
 
-const PRELOAD_AHEAD = 3;
-const ROOT_MARGIN = "600px 0px";
+// Optimal preload settings for performance
+const PRELOAD_AHEAD = 2; // Reduced from 3 to avoid over-fetching
+const PRELOAD_BEHIND = 1; // Keep 1 behind for back navigation
+const ROOT_MARGIN = "400px 0px"; // Reduced from 600px
 
-// Individual page component with lazy loading
+// Individual page component with optimized lazy loading
 const ReaderPage = memo(function ReaderPage({
   page,
   isPreloaded,
   onBecomeVisible,
+  priority,
 }: {
   page: Page;
   isPreloaded: boolean;
   onBecomeVisible: (pageNumber: number) => void;
+  priority?: "high" | "low" | "auto";
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(isPreloaded);
   const [hasError, setHasError] = useState(false);
-  const [naturalDimensions, setNaturalDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +63,7 @@ const ReaderPage = memo(function ReaderPage({
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    setNaturalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
     setIsLoaded(true);
   };
 
@@ -71,46 +72,57 @@ const ReaderPage = memo(function ReaderPage({
     setIsLoaded(true);
   };
 
-  // Calculate aspect ratio for placeholder to prevent layout shift
-  const aspectRatio = naturalDimensions
-    ? `${naturalDimensions.width} / ${naturalDimensions.height}`
-    : "2 / 3";
+  // Calculate padding-bottom for aspect ratio to prevent CLS
+  const paddingBottom = dimensions
+    ? `${(dimensions.height / dimensions.width) * 100}%`
+    : "150%"; // Default 2:3 aspect ratio
 
   return (
     <div
       ref={containerRef}
-      className="w-full relative"
-      style={{ aspectRatio: isLoaded ? undefined : aspectRatio }}
+      className="w-full relative bg-muted/10"
+      style={{
+        // Use padding-bottom trick for stable aspect ratio before image loads
+        paddingBottom: isLoaded ? undefined : paddingBottom,
+        height: isLoaded ? "auto" : 0,
+      }}
     >
-      {/* Minimal loading placeholder */}
+      {/* Minimal loading placeholder - no heavy animations */}
       {!isLoaded && (
-        <div className="absolute inset-0 bg-muted/30">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div 
+            className="w-5 h-5 border-2 border-muted-foreground/20 border-t-muted-foreground/50 rounded-full animate-spin"
+            style={{ animationDuration: "0.8s" }}
+          />
         </div>
       )}
 
-      {/* Actual image */}
+      {/* Actual image with optimal attributes */}
       {isInView && !hasError && (
         <img
           src={page.image_url}
           alt={`Page ${page.page_number}`}
           className={cn(
             "w-full h-auto block",
-            "transition-opacity duration-200 ease-out",
-            isLoaded ? "opacity-100" : "opacity-0"
+            isLoaded ? "opacity-100" : "opacity-0 absolute inset-0"
           )}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
+          loading={priority === "high" ? "eager" : "lazy"}
           decoding="async"
+          // Add fetchpriority for first few images
+          {...(priority === "high" && { fetchPriority: "high" as const })}
+          // Responsive sizing hints
+          sizes="(max-width: 768px) 100vw, 768px"
         />
       )}
 
       {/* Error state */}
       {hasError && (
-        <div className="w-full aspect-[2/3] flex items-center justify-center bg-muted/20">
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-muted/20"
+          style={{ paddingBottom: "150%" }}
+        >
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Failed to load</p>
             <button
@@ -118,7 +130,7 @@ const ReaderPage = memo(function ReaderPage({
                 setHasError(false);
                 setIsLoaded(false);
               }}
-              className="mt-2 text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+              className="mt-2 text-sm text-primary hover:underline"
             >
               Retry
             </button>
@@ -130,7 +142,7 @@ const ReaderPage = memo(function ReaderPage({
 });
 
 export function MinimalImageReader({ pages }: MinimalImageReaderProps) {
-  const [visiblePage, setVisiblePage] = useState(0);
+  const [visiblePage, setVisiblePage] = useState(1);
   const sortedPages = [...pages].sort((a, b) => a.page_number - b.page_number);
 
   const handleBecomeVisible = useCallback((pageNumber: number) => {
@@ -138,25 +150,33 @@ export function MinimalImageReader({ pages }: MinimalImageReaderProps) {
   }, []);
 
   // Determine which pages should be preloaded
-  const preloadedPages = new Set<number>();
-  for (let i = 0; i <= PRELOAD_AHEAD; i++) {
-    preloadedPages.add(visiblePage + i);
-  }
-  // Always preload first few pages
-  for (let i = 1; i <= 3; i++) {
-    preloadedPages.add(i);
-  }
+  const getPreloadState = useCallback((pageNumber: number) => {
+    // First 2 pages are always high priority
+    if (pageNumber <= 2) return { preloaded: true, priority: "high" as const };
+    
+    // Pages around current visible page
+    if (pageNumber >= visiblePage - PRELOAD_BEHIND && 
+        pageNumber <= visiblePage + PRELOAD_AHEAD) {
+      return { preloaded: true, priority: "auto" as const };
+    }
+    
+    return { preloaded: false, priority: "low" as const };
+  }, [visiblePage]);
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      {sortedPages.map((page) => (
-        <ReaderPage
-          key={page.id}
-          page={page}
-          isPreloaded={preloadedPages.has(page.page_number)}
-          onBecomeVisible={handleBecomeVisible}
-        />
-      ))}
+      {sortedPages.map((page) => {
+        const { preloaded, priority } = getPreloadState(page.page_number);
+        return (
+          <ReaderPage
+            key={page.id}
+            page={page}
+            isPreloaded={preloaded}
+            onBecomeVisible={handleBecomeVisible}
+            priority={priority}
+          />
+        );
+      })}
     </div>
   );
 }

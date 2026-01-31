@@ -99,12 +99,31 @@ export function generateFilePath(
   return `${basePath}/${timestamp}.${ext}`;
 }
 
-// Helper to generate chapter page paths with proper folder structure
+// Helper to generate chapter page paths with organized folder structure
+// Format: series/{seriesId}/chapters/{chapterNumber}/{page}.{ext}
 export function generateChapterPagePath(
   seriesId: string,
   chapterNumber: number,
   pageNumber: number,
   extension: string
 ): string {
-  return `chapters/${seriesId}/ch-${chapterNumber}/${pageNumber}.${extension}`;
+  return `series/${seriesId}/chapters/${chapterNumber}/${pageNumber}.${extension}`;
+}
+
+// Helper to generate cover image path
+export function generateCoverPath(seriesId: string, extension: string): string {
+  return `series/${seriesId}/cover.${extension}`;
+}
+
+// Helper to generate banner image path
+export function generateBannerPath(seriesId: string, extension: string): string {
+  return `series/${seriesId}/banner.${extension}`;
+}
+
+// Helper to generate PDF path
+export function generatePdfPath(
+  seriesId: string,
+  chapterNumber: number
+): string {
+  return `series/${seriesId}/chapters/${chapterNumber}/chapter.pdf`;
 }
