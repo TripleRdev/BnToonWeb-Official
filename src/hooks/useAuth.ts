@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { login as authLogin, verifyToken, logout as authLogout } from "@/lib/auth";
-
-interface User {
-  id: string;
-  email: string;
-  role?: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { isAdminEmail, signIn as authSignIn, signOut as authSignOut } from "@/lib/auth";
+import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -17,63 +14,73 @@ interface AuthState {
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     user: null,
+    session: null,
     loading: true,
     isAuthenticated: false,
     isAdmin: false,
   });
 
-  const checkAuth = useCallback(async () => {
-    const result = await verifyToken();
-    
-    if (result.valid && result.user) {
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const user = session?.user ?? null;
+        const isAdmin = isAdminEmail(user?.email);
+        
+        setState({
+          user,
+          session,
+          loading: false,
+          isAuthenticated: !!session,
+          isAdmin,
+        });
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const user = session?.user ?? null;
+      const isAdmin = isAdminEmail(user?.email);
+      
       setState({
-        user: result.user,
+        user,
+        session,
         loading: false,
-        isAuthenticated: true,
-        isAdmin: result.user.role === "admin",
+        isAuthenticated: !!session,
+        isAdmin,
       });
-    } else {
-      setState({
-        user: null,
-        loading: false,
-        isAuthenticated: false,
-        isAdmin: false,
-      });
-    }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  const signIn = async (email: string, password: string) => {
-    const result = await authLogin(email, password);
+  const signIn = useCallback(async (email: string, password: string) => {
+    const result = await authSignIn(email, password);
     
     if (result.error) {
       return { error: { message: result.error } };
     }
 
-    if (result.user) {
-      setState({
-        user: result.user,
-        loading: false,
-        isAuthenticated: true,
-        isAdmin: true,
-      });
-    }
-
     return { error: null };
-  };
+  }, []);
 
-  const signOut = async () => {
-    authLogout();
+  const signOut = useCallback(async () => {
+    await authSignOut();
+  }, []);
+
+  const checkAuth = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user ?? null;
+    const isAdmin = isAdminEmail(user?.email);
+    
     setState({
-      user: null,
+      user,
+      session,
       loading: false,
-      isAuthenticated: false,
-      isAdmin: false,
+      isAuthenticated: !!session,
+      isAdmin,
     });
-  };
+  }, []);
 
   return {
     ...state,

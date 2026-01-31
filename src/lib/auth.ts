@@ -1,94 +1,80 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const AUTH_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/auth`;
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 
-interface AuthUser {
-  id: string;
-  email: string;
-  role?: string;
+// Admin email allowlist - only these emails can access admin features
+// This is checked on both frontend AND backend (Edge Functions)
+export const ADMIN_EMAILS = [
+  "admin@bntoon.com",
+  // Add more admin emails here
+];
+
+export function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
 }
 
-interface LoginResponse {
-  user?: AuthUser;
-  token?: string;
-  error?: string;
-}
-
-interface VerifyResponse {
-  valid?: boolean;
-  user?: AuthUser;
-  error?: string;
-}
-
-export async function login(
+export async function signIn(
   email: string,
   password: string
-): Promise<LoginResponse> {
-  try {
-    const response = await fetch(`${AUTH_FUNCTION_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+): Promise<{ user: User | null; error: string | null }> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      return { error: result.error || "Login failed" };
-    }
-
-    // Store token in localStorage
-    if (result.token) {
-      localStorage.setItem("admin_token", result.token);
-    }
-
-    return { user: result.user, token: result.token };
-  } catch (error) {
-    console.error("Login error:", error);
-    return {
-      error: error instanceof Error ? error.message : "Network error",
-    };
-  }
-}
-
-export async function verifyToken(): Promise<VerifyResponse> {
-  const token = localStorage.getItem("admin_token");
-  if (!token) {
-    return { valid: false };
+  if (error) {
+    return { user: null, error: error.message };
   }
 
-  try {
-    const response = await fetch(`${AUTH_FUNCTION_URL}/verify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      localStorage.removeItem("admin_token");
-      return { valid: false, error: result.error };
-    }
-
-    return { valid: result.valid, user: result.user };
-  } catch (error) {
-    console.error("Verify error:", error);
-    return { valid: false };
+  // Check if user is an admin
+  if (!isAdminEmail(data.user?.email)) {
+    await supabase.auth.signOut();
+    return { user: null, error: "Access denied. Admin privileges required." };
   }
+
+  return { user: data.user, error: null };
 }
 
-export function logout(): void {
-  localStorage.removeItem("admin_token");
+export async function signUp(
+  email: string,
+  password: string
+): Promise<{ user: User | null; error: string | null }> {
+  // Only allow admin emails to sign up
+  if (!isAdminEmail(email)) {
+    return { user: null, error: "Access denied. Admin privileges required." };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/admin`,
+    },
+  });
+
+  if (error) {
+    return { user: null, error: error.message };
+  }
+
+  return { user: data.user, error: null };
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem("admin_token");
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
 }
 
-export function isAuthenticated(): boolean {
-  return !!localStorage.getItem("admin_token");
+export async function getSession(): Promise<Session | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
+export async function getUser(): Promise<User | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user;
+}
+
+// Get the current access token for API calls
+export async function getAccessToken(): Promise<string | null> {
+  const session = await getSession();
+  return session?.access_token ?? null;
 }

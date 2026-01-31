@@ -1,8 +1,21 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Admin email allowlist - must match frontend list
+const ADMIN_EMAILS = [
+  "admin@bntoon.com",
+  // Add more admin emails here
+];
+
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
 
 const REGION_CANDIDATES = ["", "ny", "la", "sg", "de", "uk", "syd", "br"] as const;
 
@@ -25,7 +38,6 @@ function regionToHost(region: string): string {
 }
 
 function buildHostCandidates(configuredRegion: string): string[] {
-  // Try configured region first (if any), then the default host, then common regions.
   return uniqueStrings([
     regionToHost(configuredRegion || ""),
     ...REGION_CANDIDATES.map((r) => regionToHost(r)),
@@ -71,11 +83,9 @@ async function tryBunnyPut(params: {
 
     if (res.status === 401) {
       last401 = true;
-      // Keep trying other regions/hosts.
       continue;
     }
 
-    // Non-auth error: stop immediately.
     return { error: `Bunny upload failed on ${host} [${res.status}]: ${text}` };
   }
 
@@ -104,20 +114,49 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify admin token
+    // Verify Supabase JWT and check admin email
     const authHeader = req.headers.get("Authorization");
-    const isAdmin = await verifyAdminToken(authHeader);
-    if (!isAdmin) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify the JWT and get user claims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.error("JWT verification failed:", claimsError);
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userEmail = claimsData.claims.email as string | undefined;
+    
+    // Check if user is an admin
+    if (!isAdminEmail(userEmail)) {
+      console.error("Access denied for email:", userEmail);
+      return new Response(JSON.stringify({ error: "Access denied. Admin privileges required." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Admin access granted for:", userEmail);
+
     const storageZone = Deno.env.get("BUNNY_STORAGE_ZONE");
     const apiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
     const cdnHostname = Deno.env.get("BUNNY_CDN_HOSTNAME");
-    // Optional: specify region (ny, la, sg, de, uk, syd, br) or leave empty for default
     const storageRegion = Deno.env.get("BUNNY_STORAGE_REGION") || "";
 
     if (!storageZone || !apiKey || !cdnHostname) {
@@ -143,8 +182,6 @@ Deno.serve(async (req) => {
     const hostCandidates = buildHostCandidates(storageRegion);
 
     if (action === "delete") {
-      // Delete file from Bunny.net
-      // Try delete against host candidates (some zones require region-specific host)
       let deleted = false;
       let lastErr: { status: number; body: string; host: string } | null = null;
 
@@ -231,12 +268,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         url: publicUrl,
-        // Extra debug info (safe to expose):
         storage_host_used: putResult.publicStorageHost,
         detected_region: putResult.detectedRegion,
       }),
       {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -248,59 +284,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-async function verifyAdminToken(authHeader: string | null): Promise<boolean> {
-  if (!authHeader?.startsWith("Bearer ")) return false;
-  
-  const token = authHeader.replace("Bearer ", "");
-  const secret = Deno.env.get("ADMIN_JWT_SECRET");
-  if (!secret) return false;
-
-  try {
-    const [headerB64, payloadB64, signatureB64] = token.split(".");
-    if (!headerB64 || !payloadB64 || !signatureB64) return false;
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-
-    const signatureInput = `${headerB64}.${payloadB64}`;
-    const signature = base64UrlDecode(signatureB64);
-    const signatureArrayBuffer = new ArrayBuffer(signature.length);
-    new Uint8Array(signatureArrayBuffer).set(signature);
-    
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      signatureArrayBuffer,
-      encoder.encode(signatureInput)
-    );
-
-    if (!valid) return false;
-
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return false;
-    }
-
-    return payload.role === "admin";
-  } catch {
-    return false;
-  }
-}
-
-function base64UrlDecode(str: string): Uint8Array {
-  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  const padding = '='.repeat((4 - base64.length % 4) % 4);
-  const binary = atob(base64 + padding);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}

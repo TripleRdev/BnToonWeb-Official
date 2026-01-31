@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const UPLOAD_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/upload`;
 
@@ -16,8 +18,9 @@ export async function uploadFile(
   path: string
 ): Promise<UploadResponse> {
   try {
-    const token = localStorage.getItem("admin_token");
-    if (!token) {
+    // Get current session for Supabase JWT
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
       return { error: "Not authenticated" };
     }
 
@@ -29,7 +32,7 @@ export async function uploadFile(
     const response = await fetch(UPLOAD_FUNCTION_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: formData,
     });
@@ -51,8 +54,9 @@ export async function uploadFile(
 
 export async function deleteFile(path: string): Promise<DeleteResponse> {
   try {
-    const token = localStorage.getItem("admin_token");
-    if (!token) {
+    // Get current session for Supabase JWT
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
       return { error: "Not authenticated" };
     }
 
@@ -63,7 +67,7 @@ export async function deleteFile(path: string): Promise<DeleteResponse> {
     const response = await fetch(UPLOAD_FUNCTION_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: formData,
     });

@@ -18,7 +18,10 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!isAuthenticated || !isAdmin) {
+      if (!isAuthenticated) {
+        navigate("/admin/login");
+      } else if (!isAdmin) {
+        toast.error("Access denied. Admin privileges required.");
         navigate("/admin/login");
       }
     }
