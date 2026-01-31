@@ -53,7 +53,9 @@ export default defineConfig(({ mode }) => ({
       "react-router-dom",
       "@tanstack/react-query",
       "framer-motion",
+      "react-pdf",
+      "pdfjs-dist",
+      "warning",
     ],
-    exclude: ["react-pdf"], // Lazy loaded
   },
 }));
