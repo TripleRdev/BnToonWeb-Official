@@ -1,1 +1,10 @@
 project_id = "gbsbqmspjbqzfvubkvlj"
+
+[functions.upload]
+verify_jwt = false
+
+[functions.db]
+verify_jwt = false
+
+[functions.setup]
+verify_jwt = false
