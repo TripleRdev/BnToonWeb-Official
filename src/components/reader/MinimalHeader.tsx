@@ -212,31 +212,31 @@ export function MinimalHeader({
               )}
             </div>
 
-            {/* Right: Navigation */}
-            <div className="flex items-center gap-1 justify-end">
+            {/* Right: Navigation - larger touch targets for mobile */}
+            <div className="flex items-center gap-0.5 sm:gap-1 justify-end">
               <button
                 disabled={!prevChapter}
                 onClick={() => prevChapter && navigate(`/read/${prevChapter.id}`)}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
-                  "hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed",
+                  "p-2.5 sm:p-2 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center",
+                  "hover:bg-muted/50 active:bg-muted/70 disabled:opacity-30 disabled:cursor-not-allowed",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 )}
                 aria-label="Previous chapter"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5 sm:h-5 sm:w-5" />
               </button>
               <button
                 disabled={!nextChapter}
                 onClick={() => nextChapter && navigate(`/read/${nextChapter.id}`)}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
-                  "hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed",
+                  "p-2.5 sm:p-2 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center",
+                  "hover:bg-muted/50 active:bg-muted/70 disabled:opacity-30 disabled:cursor-not-allowed",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 )}
                 aria-label="Next chapter"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5 sm:h-5 sm:w-5" />
               </button>
             </div>
           </div>

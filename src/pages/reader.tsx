@@ -121,7 +121,11 @@ const Reader = () => {
         </main>
 
         {/* End Navigation */}
-        <EndNavigation prevChapter={prevChapter} nextChapter={nextChapter} />
+        <EndNavigation 
+          prevChapter={prevChapter} 
+          nextChapter={nextChapter} 
+          seriesId={chapter.series_id}
+        />
       </article>
     </>
   );
