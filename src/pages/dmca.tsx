@@ -63,10 +63,10 @@ export default function DMCA() {
               <p className="text-foreground font-medium">
                 📧 Contact Email:{" "}
                 <a
-                  href="mailto:bntoonweb@gmail.com"
+                  href="mailto:dmca@bntoon.xyz"
                   className="text-primary hover:underline"
                 >
-                  bntoonweb@gmail.com
+                  dmca@bntoon.xyz
                 </a>
               </p>
             </div>
