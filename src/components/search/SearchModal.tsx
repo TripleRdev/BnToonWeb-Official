@@ -300,7 +300,7 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
                         </Badge>
                         <span>{series.chapters_count} chapters</span>
                         {series.rating && (
-                          <span>★ {series.rating.toFixed(1)}</span>
+                          <span>★ {Number(series.rating).toFixed(1)}</span>
                         )}
                       </div>
                     </div>
