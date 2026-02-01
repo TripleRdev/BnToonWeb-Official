@@ -131,7 +131,7 @@ export function FeaturedSection({ series }: FeaturedSectionProps) {
               {current.rating !== undefined && current.rating !== null && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                  {current.rating.toFixed(1)}
+                  {Number(current.rating).toFixed(1)}
                 </span>
               )}
             </div>
