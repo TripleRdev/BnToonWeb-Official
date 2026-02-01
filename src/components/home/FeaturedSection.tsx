@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LazyImage } from "@/components/ui/lazy-image";
@@ -18,6 +18,7 @@ interface FeaturedSeries {
   description?: string | null;
   status: string;
   type?: string;
+  rating?: number | null;
   chaptersCount?: number;
   genres?: Genre[];
 }
@@ -109,7 +110,7 @@ export function FeaturedSection({ series }: FeaturedSectionProps) {
 
           {/* Content */}
           <div className="flex-1 min-w-0 flex flex-col">
-            {/* Badges */}
+            {/* Badges - Type, Status, and Rating */}
             <div className="flex flex-wrap items-center gap-2 mb-2">
               {current.type && (
                 <Badge 
@@ -127,10 +128,10 @@ export function FeaturedSection({ series }: FeaturedSectionProps) {
               <Badge className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 ${status.color} text-white border-0`}>
                 {status.label}
               </Badge>
-              {current.chaptersCount !== undefined && current.chaptersCount > 0 && (
+              {current.rating !== undefined && current.rating !== null && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <BookOpen className="h-3 w-3" />
-                  {current.chaptersCount} Ch
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  {current.rating.toFixed(1)}
                 </span>
               )}
             </div>
@@ -163,14 +164,19 @@ export function FeaturedSection({ series }: FeaturedSectionProps) {
               </p>
             )}
 
-            {/* Read Button */}
-            <div className="mt-auto">
+            {/* Chapters count + Read Button */}
+            <div className="mt-auto flex items-center gap-3">
               <Link to={`/series/${current.id}`}>
                 <Button size="sm" className="text-xs">
                   <BookOpen className="mr-1.5 h-3.5 w-3.5" />
                   Read Now
                 </Button>
               </Link>
+              {current.chaptersCount !== undefined && current.chaptersCount > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {current.chaptersCount} Chapters
+                </span>
+              )}
             </div>
           </div>
         </div>

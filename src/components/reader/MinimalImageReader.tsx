@@ -165,24 +165,20 @@ export function MinimalImageReader({ pages }: MinimalImageReaderProps) {
 
   return (
     <div 
-      className="w-full max-w-3xl mx-auto px-0 sm:px-4"
+      className="w-full max-w-3xl mx-auto"
       role="img"
       aria-label={`Chapter pages, ${sortedPages.length} total`}
     >
-      {sortedPages.map((page, index) => {
+      {sortedPages.map((page) => {
         const { preloaded, priority } = getPreloadState(page.page_number);
         return (
-          <div 
-            key={page.id} 
-            className={index < sortedPages.length - 1 ? "mb-1 sm:mb-2" : ""}
-          >
-            <ReaderPage
-              page={page}
-              isPreloaded={preloaded}
-              onBecomeVisible={handleBecomeVisible}
-              priority={priority}
-            />
-          </div>
+          <ReaderPage
+            key={page.id}
+            page={page}
+            isPreloaded={preloaded}
+            onBecomeVisible={handleBecomeVisible}
+            priority={priority}
+          />
         );
       })}
     </div>
