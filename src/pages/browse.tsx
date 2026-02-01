@@ -3,13 +3,13 @@ import { BrowseCard } from "@/components/browse/BrowseCard";
 import { useBrowseSeries } from "@/hooks/useBrowseSeries";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useGenres } from "@/hooks/useGenres";
+import { useSeriesGenresMap } from "@/hooks/useSeriesGenresMap";
 import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useMemo } from "react";
 
 const Browse = () => {
   const {
@@ -21,10 +21,9 @@ const Browse = () => {
   } = useBrowseSeries();
 
   const { data: genres, isLoading: genresLoading } = useGenres();
+  const { data: seriesGenresMap, isLoading: loadingGenreMap } = useSeriesGenresMap();
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [seriesGenresMap, setSeriesGenresMap] = useState<Record<string, string[]>>({});
-  const [loadingGenreMap, setLoadingGenreMap] = useState(true);
 
   const { loadMoreRef } = useInfiniteScroll({
     hasNextPage: hasNextPage ?? false,
@@ -34,28 +33,6 @@ const Browse = () => {
 
   /* Flatten paginated series */
   const allSeries = useMemo(() => data?.pages.flatMap((page) => page.series) ?? [], [data]);
-
-  /* Fetch series-genre relations */
-  useEffect(() => {
-    const fetchSeriesGenres = async () => {
-      const { data, error } = await supabase
-        .from("series_genres")
-        .select("series_id, genre_id");
-
-      if (!error && data) {
-        const map: Record<string, string[]> = {};
-        data.forEach((sg) => {
-          if (!map[sg.series_id]) map[sg.series_id] = [];
-          map[sg.series_id].push(sg.genre_id);
-        });
-        setSeriesGenresMap(map);
-      }
-
-      setLoadingGenreMap(false);
-    };
-
-    fetchSeriesGenres();
-  }, []);
 
   /* Genre controls */
   const toggleGenre = (genreId: string) => {
@@ -68,6 +45,7 @@ const Browse = () => {
 
   /* Filtering logic */
   const filteredSeries = useMemo(() => {
+    if (!seriesGenresMap) return allSeries;
     return allSeries.filter((s) => {
       if (selectedGenres.length === 0) return true;
       return selectedGenres.every((gid) => seriesGenresMap[s.id]?.includes(gid));

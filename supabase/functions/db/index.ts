@@ -89,6 +89,12 @@ Deno.serve(async (req) => {
         `;
         break;
 
+      case "get_all_series_genres":
+        result = await sql`
+          SELECT series_id, genre_id FROM series_genres
+        `;
+        break;
+
       case "get_popular_series": {
         const period = params.time_period || "all";
         const limit = params.result_limit || 10;
