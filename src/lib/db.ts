@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DB_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/db`;
 
@@ -11,13 +13,15 @@ export async function dbQuery<T = unknown>(
   params: Record<string, unknown> = {}
 ): Promise<DbResponse<T>> {
   try {
-    const token = localStorage.getItem("admin_token");
+    // Use Supabase session token instead of custom JWT
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
     }
 
     const response = await fetch(DB_FUNCTION_URL, {

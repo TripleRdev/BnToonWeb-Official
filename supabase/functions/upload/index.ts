@@ -107,6 +107,37 @@ async function tryBunnyPut(params: {
   return { error: "Failed to upload file to storage" };
 }
 
+// Validate file magic bytes match claimed MIME type
+function validateMagicBytes(bytes: Uint8Array, mimeType: string): boolean {
+  // JPEG: FF D8 FF
+  if (mimeType === "image/jpeg") {
+    return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+  }
+  
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (mimeType === "image/png") {
+    return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47 &&
+           bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A;
+  }
+  
+  // GIF: 47 49 46 38 (GIF8)
+  if (mimeType === "image/gif") {
+    return bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38;
+  }
+  
+  // WebP: 52 49 46 46 ... 57 45 42 50 (RIFF...WEBP)
+  if (mimeType === "image/webp") {
+    return bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+  }
+  
+  // PDF: 25 50 44 46 (%PDF)
+  if (mimeType === "application/pdf") {
+    return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+  }
+  
+  return false;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -234,8 +265,87 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ============ SERVER-SIDE VALIDATION ============
+    
+    // 1. File size validation (10MB for images, 50MB for PDFs)
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50MB
+    const fileSize = file.size;
+    
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const maxSize = isPdf ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
+    
+    if (fileSize > maxSize) {
+      const maxMB = maxSize / (1024 * 1024);
+      return new Response(
+        JSON.stringify({ error: `File too large. Maximum size is ${maxMB}MB` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 2. Path validation - prevent directory traversal
+    if (path.includes("..") || path.includes("//") || path.startsWith("/")) {
+      return new Response(
+        JSON.stringify({ error: "Invalid file path" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 3. File extension validation
+    const dangerousExtensions = [".php", ".jsp", ".asp", ".aspx", ".exe", ".sh", ".bat", ".cmd", ".ps1", ".html", ".htm", ".js", ".svg"];
+    const fileName = file.name.toLowerCase();
+    
+    if (dangerousExtensions.some(ext => fileName.endsWith(ext))) {
+      return new Response(
+        JSON.stringify({ error: "File type not allowed" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 4. Allowed MIME types (server-side check)
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+    ];
+    
+    if (!allowedMimeTypes.includes(file.type)) {
+      return new Response(
+        JSON.stringify({ error: `File type '${file.type}' not allowed. Allowed: JPEG, PNG, GIF, WebP, PDF` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+
+    // 5. Magic byte validation (verify actual file content matches claimed type)
+    const magicBytes = uint8Array.slice(0, 8);
+    const isValidMagic = validateMagicBytes(magicBytes, file.type);
+    
+    if (!isValidMagic) {
+      return new Response(
+        JSON.stringify({ error: "File content does not match declared type" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     console.log("File size:", uint8Array.length, "bytes");
     console.log("Content-Type:", file.type);

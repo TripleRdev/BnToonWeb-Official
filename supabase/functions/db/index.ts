@@ -1,10 +1,22 @@
 import { neon } from "https://esm.sh/@neondatabase/serverless@0.10.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Admin email allowlist - must match upload function
+const ADMIN_EMAILS = [
+  "admin@bntoon.com",
+  "bntoonweb@gmail.com",
+];
+
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
 
 interface RequestBody {
   action: string;
@@ -21,9 +33,9 @@ Deno.serve(async (req) => {
     const sql = neon(Deno.env.get("NEON_DATABASE_URL")!);
     const { action, params = {} } = (await req.json()) as RequestBody;
 
-    // Verify admin token for write operations
+    // Verify admin using Supabase auth (consistent with upload function)
     const authHeader = req.headers.get("Authorization");
-    const isAdmin = await verifyAdminToken(authHeader);
+    const isAdmin = await verifyAdmin(authHeader);
 
     let result: unknown;
 
@@ -658,61 +670,29 @@ Deno.serve(async (req) => {
   }
 });
 
-async function verifyAdminToken(authHeader: string | null): Promise<boolean> {
+// Verify admin using Supabase auth (consistent with upload function)
+async function verifyAdmin(authHeader: string | null): Promise<boolean> {
   if (!authHeader?.startsWith("Bearer ")) return false;
-  
-  const token = authHeader.replace("Bearer ", "");
-  const secret = Deno.env.get("ADMIN_JWT_SECRET");
-  if (!secret) return false;
 
   try {
-    // Decode JWT manually (simple HS256 verification)
-    const [headerB64, payloadB64, signatureB64] = token.split(".");
-    if (!headerB64 || !payloadB64 || !signatureB64) return false;
-
-    // Verify signature
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const signatureInput = `${headerB64}.${payloadB64}`;
-    const signature = base64UrlDecode(signatureB64);
-    const signatureArrayBuffer = new ArrayBuffer(signature.length);
-    new Uint8Array(signatureArrayBuffer).set(signature);
-    
-    const valid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      signatureArrayBuffer,
-      encoder.encode(signatureInput)
-    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
 
-    if (!valid) return false;
-
-    // Check expiration
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    if (claimsError || !claimsData?.claims) {
+      console.error("JWT verification failed:", claimsError);
       return false;
     }
 
-    return payload.role === "admin";
-  } catch {
+    const userEmail = claimsData.claims.email as string | undefined;
+    return isAdminEmail(userEmail);
+  } catch (error) {
+    console.error("Admin verification error:", error);
     return false;
   }
-}
-
-function base64UrlDecode(str: string): Uint8Array {
-  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  const padding = '='.repeat((4 - base64.length % 4) % 4);
-  const binary = atob(base64 + padding);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
 }
