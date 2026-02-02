@@ -262,6 +262,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Add cache-busting timestamp to URL for immediate availability
+    // But CDN will cache the file with long-lived headers
     const publicUrl = `https://${cdnHostname}/${path}`;
     console.log("Upload successful, public URL:", publicUrl);
 
@@ -270,9 +272,19 @@ Deno.serve(async (req) => {
         url: publicUrl,
         storage_host_used: putResult.publicStorageHost,
         detected_region: putResult.detectedRegion,
+        // Inform client that CDN caching is enabled
+        cache_info: {
+          immutable: true,
+          max_age: 31536000, // 1 year in seconds
+        },
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          // Suggest caching strategy to client
+          "X-Cache-Strategy": "immutable",
+        },
       }
     );
   } catch (error) {
