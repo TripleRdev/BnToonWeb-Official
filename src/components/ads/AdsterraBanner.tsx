@@ -14,35 +14,41 @@ export function AdsterraBanner({
   className = "",
 }: AdsterraBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const loadedRef = useRef(false);
 
   useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
+    if (!containerRef.current) return;
 
-    // VERY IMPORTANT: isolate atOptions
-    (window as any).atOptions = {
-      key: adKey,
-      format: "iframe",
-      height,
-      width,
-      params: {},
-    };
+    // clear container on re-mount
+    containerRef.current.innerHTML = "";
 
-    const script = document.createElement("script");
-    script.src = `https://openairtowhardworking.com/${adKey}/invoke.js`;
-    script.async = true;
-    script.setAttribute("data-cfasync", "false");
+    // create inline config script (SCOPED)
+    const configScript = document.createElement("script");
+    configScript.type = "text/javascript";
+    configScript.innerHTML = `
+      atOptions = {
+        'key': '${adKey}',
+        'format': 'iframe',
+        'height': ${height},
+        'width': ${width},
+        'params': {}
+      };
+    `;
 
-    containerRef.current?.appendChild(script);
+    // invoke script
+    const invokeScript = document.createElement("script");
+    invokeScript.src = `https://openairtowhardworking.com/${adKey}/invoke.js`;
+    invokeScript.async = true;
+    invokeScript.setAttribute("data-cfasync", "false");
+
+    containerRef.current.appendChild(configScript);
+    containerRef.current.appendChild(invokeScript);
   }, [adKey, width, height]);
 
   return (
     <div
       ref={containerRef}
-      className={`flex justify-center items-center ${className}`}
+      className={`flex justify-center ${className}`}
       style={{ minHeight: height }}
-      aria-label="Advertisement"
     />
   );
 }
