@@ -147,7 +147,7 @@ const Browse = () => {
             </div>
 
             {/* Mid-page Banner Ad */}
-              <AdBanner728 className="my-10" />
+              <AdBanner728 className="mb-8" />
             
             {/* Infinite Scroll Trigger */}
             <div ref={loadMoreRef} className="mt-10 flex justify-center">
