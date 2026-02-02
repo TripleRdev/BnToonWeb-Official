@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { AD_CONFIG } from "@/components/ads/adConfig";
 import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
 
 const Browse = () => {
