@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { HilltopBanner } from "@/components/ads/HilltopBanner";
+import { AdBanner } from "@/components/ads/AdBanner";
+import { AD_CONFIG } from "@/components/ads/adConfig";
+import { SidebarAd } from "@/components/ads/SidebarAd";
 
 const Browse = () => {
   const {
@@ -71,7 +73,7 @@ const Browse = () => {
         </div>
 
         {/* Top Banner Ad */}
-            <HilltopBanner className="mb-8" />
+            <AdBanner className="my-6" />
 
         {/* Genre Filters */}
         {!genresLoading && genres?.length > 0 && (
@@ -147,7 +149,7 @@ const Browse = () => {
             </div>
 
             {/* Mid-page Banner Ad */}
-              <HilltopBanner className="my-10" />
+              <AdBanner className="my-10" />
             
             {/* Infinite Scroll Trigger */}
             <div ref={loadMoreRef} className="mt-10 flex justify-center">
