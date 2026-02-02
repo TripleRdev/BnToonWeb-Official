@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 import { AdBanner } from "@/components/ads/AdBanner";
 import { AD_CONFIG } from "@/components/ads/adConfig";
+import { SidebarAd } from "@/components/ads/SidebarAd";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -132,7 +133,12 @@ const Index = () => {
             {/* Right Sidebar */}
             <div className="space-y-6">
               <PopularSidebar />
-              <JoinUsCard />
+              {/* Sidebar Native Ad */}
+                <SidebarAd
+                  containerId="container-c35c6f6f42ee902bbfca715ccd1d497f"
+                  scriptUrl="https://openairtowhardworking.com/c35c6f6f42ee902bbfca715ccd1d497f/invoke.js"
+                />
+                <JoinUsCard />
             </div>
           </div>
         </div>
