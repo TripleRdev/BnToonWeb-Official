@@ -66,11 +66,7 @@ const Index = () => {
               ) : null}
 
               {/* Ad Banner - async loaded, non-blocking */}
-              <AdBanner
-                containerId={AD_CONFIG.nativeBanner.containerId}
-                scriptUrl={AD_CONFIG.nativeBanner.scriptUrl}
-                className="mb-6"
-              />
+              <AdBanner className="my-6" />
 
               {/* Latest Updates Section */}
               <section>
