@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { AdBanner728 } from "@/components/ads/AdBanner728";
 
 const Browse = () => {
   const {
@@ -69,8 +70,8 @@ const Browse = () => {
           <p className="text-muted-foreground">Explore our collection of comics and manga</p>
         </div>
 
-        {/* Top Native Ad */}
-        <div id="container-c35c6f6f42ee902bbfca715ccd1d497f" className="mb-8" />
+        {/* Top Banner Ad */}
+            <AdBanner728 className="mb-8" />
 
         {/* Genre Filters */}
         {!genresLoading && genres?.length > 0 && (
@@ -145,9 +146,9 @@ const Browse = () => {
               ))}
             </div>
 
-            {/* Mid-page Native Ad */}
-            <div id="container-c35c6f6f42ee902bbfca715ccd1d497f" className="my-10" />
-
+            {/* Mid-page Banner Ad */}
+              <AdBanner728 className="my-10" />
+            
             {/* Infinite Scroll Trigger */}
             <div ref={loadMoreRef} className="mt-10 flex justify-center">
               {isFetchingNextPage && (
