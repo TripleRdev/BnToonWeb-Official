@@ -19,6 +19,7 @@ export const AD_UNITS = {
     adKey: "60b102fe0a6bd36b3aa4e1cf27080918",
     width: 320,
     height: 50,
+    format: "iframe",
   },
   
   // 728x90 leaderboard (desktop)
@@ -26,6 +27,7 @@ export const AD_UNITS = {
     adKey: "55df5565f644bb1aefe96eefc0393e90",
     width: 728,
     height: 90,
+    format: "iframe",
   },
   
   // Native sidebar banner
@@ -33,8 +35,11 @@ export const AD_UNITS = {
     adKey: "c35c6f6f42ee902bbfca715ccd1d497f",
     width: 300,
     height: 250,
+    format: "native",
   },
 } as const;
+
+export const AD_BASE_URL = "https://openairtowhardworking.com";
 
 /**
  * Pages where ads are FORBIDDEN (reader must be distraction-free)

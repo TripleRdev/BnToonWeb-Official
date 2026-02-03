@@ -5,6 +5,12 @@ import { useEffect, useRef, useState } from "react";
  */
 const adRegistry = new Map<string, boolean>();
 const loadedScripts = new Set<string>();
+let adLoadQueue: Promise<void> = Promise.resolve();
+
+const enqueueAdLoad = (load: () => Promise<void>) => {
+  adLoadQueue = adLoadQueue.then(load).catch(() => undefined);
+  return adLoadQueue;
+};
 
 interface AdUnitProps {
   /** Unique Adsterra ad key */
@@ -17,6 +23,10 @@ interface AdUnitProps {
   className?: string;
   /** Unique placement ID (e.g., "home-banner", "browse-sidebar") */
   placementId: string;
+  /** Ad format (iframe or native) */
+  format?: "iframe" | "native";
+  /** Adsterra base URL */
+  baseUrl?: string;
 }
 
 /**
@@ -33,21 +43,22 @@ export function AdUnit({
   height,
   className = "",
   placementId,
+  format = "iframe",
+  baseUrl = "https://openairtowhardworking.com",
 }: AdUnitProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef(false);
   const [adBlocked, setAdBlocked] = useState(false);
 
-  // Stable container ID based on placement
-  const containerId = `adsterra-${placementId}`;
+  // Stable container ID based on placement (native uses provider-required container id)
+  const containerId =
+    format === "native" ? `container-${adKey}` : `adsterra-${placementId}`;
+  const registryKey = `adsterra-${placementId}`;
 
   useEffect(() => {
-    // Prevent StrictMode double-mount
-    if (mountedRef.current) return;
-    mountedRef.current = true;
+    setAdBlocked(false);
 
     // Check if this placement already loaded
-    if (adRegistry.has(containerId)) {
+    if (adRegistry.has(registryKey)) {
       return;
     }
 
@@ -55,39 +66,45 @@ export function AdUnit({
     if (!container) return;
 
     // Mark as loading
-    adRegistry.set(containerId, true);
+    adRegistry.set(registryKey, true);
 
     // Clear any existing content
     container.innerHTML = "";
 
     // Create unique namespace for this ad's options
     const optionsVarName = `atOptions_${placementId.replace(/-/g, "_")}`;
+    const adOptions =
+      format === "iframe"
+        ? {
+            key: adKey,
+            format: "iframe",
+            height,
+            width,
+            params: {},
+          }
+        : null;
 
-    // Inline config script with SCOPED variable
-    const configScript = document.createElement("script");
-    configScript.type = "text/javascript";
-    configScript.textContent = `
-      window['${optionsVarName}'] = {
-        'key': '${adKey}',
-        'format': 'iframe',
-        'height': ${height},
-        'width': ${width},
-        'params': {}
-      };
-      window.atOptions = window['${optionsVarName}'];
-    `;
+    if (adOptions) {
+      (window as typeof window & { [key: string]: unknown })[optionsVarName] =
+        adOptions;
+    }
 
     // Invoke script (Adsterra domain)
     const invokeScript = document.createElement("script");
-    const scriptUrl = `https://www.topcreativeformat.com/${adKey}/invoke.js`;
+    const scriptUrl = `${baseUrl}/${adKey}/invoke.js`;
     invokeScript.src = scriptUrl;
     invokeScript.async = true;
     invokeScript.setAttribute("data-cfasync", "false");
 
     // Error handling for ad blockers
-    invokeScript.onerror = () => {
-      setAdBlocked(true);
-      adRegistry.delete(containerId);
+    let resolved = false;
+    let resolveLoad: (() => void) | null = null;
+    const finalize = () => {
+      if (resolved) return;
+      resolved = true;
+      if (invokeScript.parentNode) {
+        invokeScript.parentNode.removeChild(invokeScript);
+      }
     };
 
     // Timeout fallback for silent blocks
@@ -95,29 +112,63 @@ export function AdUnit({
       if (container.children.length <= 2) {
         // Only our scripts, no ad iframe
         setAdBlocked(true);
+        adRegistry.delete(registryKey);
+        container.innerHTML = "";
+        resolveLoad?.();
+        void finalize();
       }
     }, 5000);
 
-    container.appendChild(configScript);
-    container.appendChild(invokeScript);
+    void enqueueAdLoad(
+      () =>
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+          if (!containerRef.current) {
+            resolve();
+            return;
+          }
+
+          invokeScript.onload = () => {
+            resolve();
+            void finalize();
+          };
+          invokeScript.onerror = () => {
+            setAdBlocked(true);
+            adRegistry.delete(registryKey);
+            resolve();
+            void finalize();
+          };
+
+          if (adOptions) {
+            window.atOptions = adOptions;
+          }
+          container.appendChild(invokeScript);
+        })
+    );
 
     return () => {
       clearTimeout(timeout);
-      // Don't remove from registry on unmount - keeps ad persistent during SPA navigation
+      adRegistry.delete(registryKey);
     };
-  }, [adKey, width, height, containerId, placementId]);
-
-  // Graceful fallback when blocked
-  if (adBlocked) {
-    return null; // Silent fail, no broken UI
-  }
+  }, [
+    adKey,
+    width,
+    height,
+    containerId,
+    registryKey,
+    placementId,
+    format,
+    baseUrl,
+  ]);
 
   return (
     <div
       id={containerId}
       ref={containerRef}
-      className={`flex justify-center items-center ${className}`}
-      style={{ minHeight: height, minWidth: width }}
+      className={`flex justify-center items-center ${className} ${
+        adBlocked ? "hidden" : ""
+      }`}
+      style={adBlocked ? undefined : { minHeight: height, minWidth: width }}
       aria-label="Advertisement"
       role="complementary"
     />

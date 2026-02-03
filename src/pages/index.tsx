@@ -10,7 +10,7 @@ import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
 import { AdUnit } from "@/components/ads/AdUnit";
-import { AD_UNITS } from "@/components/ads/adConfig";
+import { AD_BASE_URL, AD_UNITS } from "@/components/ads/adConfig";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -71,6 +71,8 @@ const Index = () => {
                 adKey={AD_UNITS.mobileBanner.adKey}
                 width={AD_UNITS.mobileBanner.width}
                 height={AD_UNITS.mobileBanner.height}
+                format={AD_UNITS.mobileBanner.format}
+                baseUrl={AD_BASE_URL}
                 className="my-6"
               />
 
@@ -143,6 +145,8 @@ const Index = () => {
                 adKey={AD_UNITS.sidebar.adKey}
                 width={AD_UNITS.sidebar.width}
                 height={AD_UNITS.sidebar.height}
+                format={AD_UNITS.sidebar.format}
+                baseUrl={AD_BASE_URL}
               />
               <JoinUsCard />
             </div>

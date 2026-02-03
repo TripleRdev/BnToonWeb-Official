@@ -11,7 +11,7 @@ import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { AdUnit } from "@/components/ads/AdUnit";
-import { AD_UNITS } from "@/components/ads/adConfig";
+import { AD_BASE_URL, AD_UNITS } from "@/components/ads/adConfig";
 
 const Browse = () => {
   const {
@@ -78,6 +78,8 @@ const Browse = () => {
     adKey={AD_UNITS.leaderboard.adKey}
     width={AD_UNITS.leaderboard.width}
     height={AD_UNITS.leaderboard.height}
+    format={AD_UNITS.leaderboard.format}
+    baseUrl={AD_BASE_URL}
   />
 </div>
 
