@@ -77,9 +77,9 @@ export function AdUnit({
       window.atOptions = window['${optionsVarName}'];
     `;
 
-    // Invoke script (unified domain)
+    // Invoke script (Adsterra domain)
     const invokeScript = document.createElement("script");
-    const scriptUrl = `https://www.highperformanceformat.com/${adKey}/invoke.js`;
+    const scriptUrl = `https://www.topcreativeformat.com/${adKey}/invoke.js`;
     invokeScript.src = scriptUrl;
     invokeScript.async = true;
     invokeScript.setAttribute("data-cfasync", "false");
