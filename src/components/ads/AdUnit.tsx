@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
  * Singleton registry to track loaded ad units and prevent duplicates
  */
 const adRegistry = new Map<string, boolean>();
-const loadedScripts = new Set<string>();
 let adLoadQueue: Promise<void> = Promise.resolve();
 
 const enqueueAdLoad = (load: () => Promise<void>) => {
@@ -51,6 +50,7 @@ export function AdUnit({
 
   useEffect(() => {
     setAdBlocked(false);
+    let isActive = true;
 
     // Check if this placement already loaded
     if (adRegistry.has(containerId)) {
@@ -75,15 +75,22 @@ export function AdUnit({
       width,
       params: {},
     };
-
-    (window as typeof window & { [key: string]: unknown })[optionsVarName] = adOptions;
+    const globalWindow = window as typeof window & { [key: string]: unknown };
+    if (!usesContainerId) {
+      globalWindow[optionsVarName] = adOptions;
+    }
 
     // Invoke script (Adsterra domain)
     const invokeScript = document.createElement("script");
     const scriptUrl = `https://openairtowhardworking.com/${adKey}/invoke.js`;
     invokeScript.src = scriptUrl;
-    invokeScript.async = true;
+    invokeScript.async = usesContainerId;
+    if (!usesContainerId) {
+      invokeScript.defer = false;
+    }
     invokeScript.setAttribute("data-cfasync", "false");
+    invokeScript.referrerPolicy = "no-referrer-when-downgrade";
+    invokeScript.crossOrigin = "anonymous";
 
     // Error handling for ad blockers
     let resolved = false;
@@ -94,13 +101,18 @@ export function AdUnit({
       if (invokeScript.parentNode) {
         invokeScript.parentNode.removeChild(invokeScript);
       }
+      if (!usesContainerId && window.atOptions === adOptions) {
+        delete window.atOptions;
+      }
     };
 
     // Timeout fallback for silent blocks
     const timeout = setTimeout(() => {
       if (container.children.length <= 2) {
         // Only our scripts, no ad iframe
-        setAdBlocked(true);
+        if (isActive) {
+          setAdBlocked(true);
+        }
         adRegistry.delete(containerId);
         container.innerHTML = "";
         resolveLoad?.();
@@ -122,22 +134,27 @@ export function AdUnit({
             void finalize();
           };
           invokeScript.onerror = () => {
-            setAdBlocked(true);
+            if (isActive) {
+              setAdBlocked(true);
+            }
             adRegistry.delete(containerId);
             resolve();
             void finalize();
           };
 
-          window.atOptions = adOptions;
+          if (!usesContainerId) {
+            window.atOptions = adOptions;
+          }
           container.appendChild(invokeScript);
         })
     );
 
     return () => {
+      isActive = false;
       clearTimeout(timeout);
       adRegistry.delete(containerId);
     };
-  }, [adKey, width, height, containerId, placementId]);
+  }, [adKey, width, height, containerId, placementId, usesContainerId]);
 
   return (
     <div
@@ -158,5 +175,4 @@ export function AdUnit({
  */
 export function resetAdRegistry() {
   adRegistry.clear();
-  loadedScripts.clear();
 }
