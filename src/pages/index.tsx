@@ -9,8 +9,8 @@ import { JoinUsCard } from "@/components/home/JoinUsCard";
 import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
-import { AdsterraBanner } from "@/components/ads/AdsterraBanner";
-import { AdsterraSidebar } from "@/components/ads/AdsterraSidebar";
+import { AdUnit } from "@/components/ads/AdUnit";
+import { AD_UNITS } from "@/components/ads/adConfig";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -65,13 +65,14 @@ const Index = () => {
                 <FeaturedSection series={featuredSeries} />
               ) : null}
 
-              {/* Adsterra Banner – SAFE placement */}
-            <AdsterraBanner
-              adKey="60b102fe0a6bd36b3aa4e1cf27080918"
-              width={320}
-              height={50}
-              className="my-6"
-            />
+              {/* Mobile Banner – SAFE placement */}
+              <AdUnit
+                placementId="home-mobile-banner"
+                adKey={AD_UNITS.mobileBanner.adKey}
+                width={AD_UNITS.mobileBanner.width}
+                height={AD_UNITS.mobileBanner.height}
+                className="my-6"
+              />
 
               {/* Latest Updates Section */}
               <section>
@@ -135,14 +136,16 @@ const Index = () => {
             </div>
 
             <div className="space-y-6">
-                <PopularSidebar />
-                  {/* Sidebar Adsterra Native Banner */}
-                <AdsterraSidebar
-                  containerId="container-c35c6f6f42ee902bbfca715ccd1d497f"
-                  scriptUrl="https://openairtowhardworking.com/c35c6f6f42ee902bbfca715ccd1d497f/invoke.js"
-                />
-                <JoinUsCard />
-                  </div>
+              <PopularSidebar />
+              {/* Sidebar Ad */}
+              <AdUnit
+                placementId="home-sidebar"
+                adKey={AD_UNITS.sidebar.adKey}
+                width={AD_UNITS.sidebar.width}
+                height={AD_UNITS.sidebar.height}
+              />
+              <JoinUsCard />
+            </div>
           </div>
         </div>
       </main>

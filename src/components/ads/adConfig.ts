@@ -1,7 +1,7 @@
 /**
- * Ad configuration - centralized ad network settings
+ * Ad configuration - centralized Adsterra ad unit settings
  * 
- * IMPORTANT: Only use non-intrusive ad types
+ * ALLOWED AD TYPES:
  * - Banner ads ✓
  * - Sidebar ads ✓
  * - Footer ads ✓
@@ -13,40 +13,40 @@
  * - Ads between chapter images ✗
  */
 
-export const AD_CONFIG = {
-  // Native banner ad (horizontal)
-  nativeBanner: {
-    containerId: "container-c35c6f6f42ee902bbfca715ccd1d497f",
-    scriptUrl: "https://pl28562322.effectivegatecpm.com/c35c6f6f42ee902bbfca715ccd1d497f/invoke.js",
+export const AD_UNITS = {
+  // 320x50 mobile banner
+  mobileBanner: {
+    adKey: "60b102fe0a6bd36b3aa4e1cf27080918",
+    width: 320,
+    height: 50,
   },
   
-  // Sidebar ad placeholder - configure when you have a sidebar ad unit
+  // 728x90 leaderboard (desktop)
+  leaderboard: {
+    adKey: "55df5565f644bb1aefe96eefc0393e90",
+    width: 728,
+    height: 90,
+  },
+  
+  // Native sidebar banner
   sidebar: {
-    containerId: "container-sidebar-ad",
-    scriptUrl: "", // Add sidebar ad script URL when available
-  },
-  
-  // Footer ad placeholder
-  footer: {
-    containerId: "container-footer-ad", 
-    scriptUrl: "", // Add footer ad script URL when available
+    adKey: "c35c6f6f42ee902bbfca715ccd1d497f",
+    width: 300,
+    height: 250,
   },
 } as const;
 
 /**
- * Pages where ads are ALLOWED
+ * Pages where ads are FORBIDDEN (reader must be distraction-free)
  */
-export const AD_ALLOWED_PAGES = [
-  "/",
-  "/browse",
-  "/series/*",
-  "/dmca",
+export const AD_FORBIDDEN_PATHS = [
+  "/read/",
+  "/admin",
 ] as const;
 
 /**
- * Pages where ads are FORBIDDEN (reader must be distraction-free)
+ * Check if ads are allowed on current path
  */
-export const AD_FORBIDDEN_PAGES = [
-  "/read/*",
-  "/admin/*",
-] as const;
+export function isAdAllowed(pathname: string): boolean {
+  return !AD_FORBIDDEN_PATHS.some(path => pathname.startsWith(path));
+}
