@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
-/**
- * Singleton registry to track loaded ad units and prevent duplicates
- */
-const adRegistry = new Map<string, boolean>();
+import { deleteAdRegistry, hasAdRegistry, setAdRegistry } from "./adRegistry";
 let adLoadQueue: Promise<void> = Promise.resolve();
 
 const enqueueAdLoad = (load: () => Promise<void>) => {
@@ -53,7 +49,7 @@ export function AdUnit({
     let isActive = true;
 
     // Check if this placement already loaded
-    if (adRegistry.has(containerId)) {
+    if (hasAdRegistry(containerId)) {
       return;
     }
 
@@ -61,7 +57,7 @@ export function AdUnit({
     if (!container) return;
 
     // Mark as loading
-    adRegistry.set(containerId, true);
+    setAdRegistry(containerId);
 
     // Clear any existing content
     container.innerHTML = "";
@@ -113,7 +109,7 @@ export function AdUnit({
         if (isActive) {
           setAdBlocked(true);
         }
-        adRegistry.delete(containerId);
+        deleteAdRegistry(containerId);
         container.innerHTML = "";
         resolveLoad?.();
         void finalize();
@@ -137,7 +133,7 @@ export function AdUnit({
             if (isActive) {
               setAdBlocked(true);
             }
-            adRegistry.delete(containerId);
+            deleteAdRegistry(containerId);
             resolve();
             void finalize();
           };
@@ -152,7 +148,7 @@ export function AdUnit({
     return () => {
       isActive = false;
       clearTimeout(timeout);
-      adRegistry.delete(containerId);
+      deleteAdRegistry(containerId);
     };
   }, [adKey, width, height, containerId, placementId, usesContainerId]);
 
@@ -168,11 +164,4 @@ export function AdUnit({
       role="complementary"
     />
   );
-}
-
-/**
- * Clear ad registry (useful for testing or forced refresh)
- */
-export function resetAdRegistry() {
-  adRegistry.clear();
 }
