@@ -143,6 +143,7 @@ const Index = () => {
                 adKey={AD_UNITS.sidebar.adKey}
                 width={AD_UNITS.sidebar.width}
                 height={AD_UNITS.sidebar.height}
+                usesContainerId={AD_UNITS.sidebar.usesContainerId}
               />
               <JoinUsCard />
             </div>
