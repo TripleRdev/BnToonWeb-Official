@@ -10,8 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { AdUnit } from "@/components/ads/AdUnit";
-import { AD_UNITS } from "@/components/ads/adConfig";
+import { HilltopAd } from "@/components/ads/HilltopAd";
 
 const Browse = () => {
   const {
@@ -56,6 +55,7 @@ const Browse = () => {
 
   const isLoading = seriesLoading || genresLoading || loadingGenreMap;
   const hasActiveFilters = selectedGenres.length > 0;
+  const allowAdultAds = import.meta.env.VITE_ALLOW_ADULT_ADS === "true";
 
   return (
     <Layout>
@@ -71,15 +71,14 @@ const Browse = () => {
           <p className="text-muted-foreground">Explore our collection of comics and manga</p>
         </div>
 
-{/* Leaderboard Ad – Desktop focused, SAFE */}
-<div className="my-6 flex justify-center overflow-x-auto">
-  <AdUnit
-    placementId="browse-leaderboard"
-    adKey={AD_UNITS.leaderboard.adKey}
-    width={AD_UNITS.leaderboard.width}
-    height={AD_UNITS.leaderboard.height}
-  />
-</div>
+        {/* Leaderboard Ad – Hilltop */}
+        <div className="my-6 flex justify-center overflow-x-auto">
+          <HilltopAd
+            slotId="browse-leaderboard"
+            scriptSrc="//potable-original.com/bUX/V.ssdPG-lf0FYFW_cu/zeHmg9quIZbUAlrkUPVTZY/3_NsjpMZyJMLDOAntbNZj/c/2AMxzlIlwCMZQq"
+            allowAdultAds={allowAdultAds}
+          />
+        </div>
 
 
 

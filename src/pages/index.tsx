@@ -9,8 +9,7 @@ import { JoinUsCard } from "@/components/home/JoinUsCard";
 import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
-import { AdUnit } from "@/components/ads/AdUnit";
-import { AD_UNITS } from "@/components/ads/adConfig";
+import { HilltopAd } from "@/components/ads/HilltopAd";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -19,6 +18,8 @@ const Index = () => {
   const { data: latestSeriesData, isLoading: isLatestLoading } = useSeriesWithLatestChapters(12);
   const featuredSeries = featuredData || [];
   const latestSeries = latestSeriesData || [];
+  const allowAdultAds = import.meta.env.VITE_ALLOW_ADULT_ADS === "true";
+  const allowAdultAds = import.meta.env.VITE_ALLOW_ADULT_ADS === "true";
 
   // Secret URL parameter access: ?access=bntoonadmin
   useEffect(() => {
@@ -65,13 +66,12 @@ const Index = () => {
                 <FeaturedSection series={featuredSeries} />
               ) : null}
 
-              {/* Mobile Banner – SAFE placement */}
-              <AdUnit
-                placementId="home-mobile-banner"
-                adKey={AD_UNITS.mobileBanner.adKey}
-                width={AD_UNITS.mobileBanner.width}
-                height={AD_UNITS.mobileBanner.height}
+              {/* Mobile Banner – Hilltop */}
+              <HilltopAd
+                slotId="home-mobile-banner"
+                scriptSrc="//potable-original.com/bUX/V.ssdPG-lf0FYFW_cu/zeHmg9quIZbUAlrkUPVTZY/3_NsjpMZyJMLDOAntbNZj/c/2AMxzlIlwCMZQq"
                 className="my-6"
+                allowAdultAds={allowAdultAds}
               />
 
               {/* Latest Updates Section */}
@@ -137,7 +137,11 @@ const Index = () => {
 
             <div className="space-y-6">
               <PopularSidebar />
-              {/* Sidebar Ad */}
+              {/* Sidebar Ad */}y
+              <HilltopAd
+                slotId="home-sidebar"
+                scriptSrc="//potable-original.com/bUX/V.ssdPG-lf0FYFW_cu/zeHmg9quIZbUAlrkUPVTZY/3_NsjpMZyJMLDOAntbNZj/c/2AMxzlIlwCMZQq"
+                allowAdultAds={allowAdultAds}                
               <AdUnit
                 placementId="home-sidebar"
                 adKey={AD_UNITS.sidebar.adKey}
