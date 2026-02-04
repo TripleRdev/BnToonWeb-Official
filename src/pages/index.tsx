@@ -9,7 +9,7 @@ import { JoinUsCard } from "@/components/home/JoinUsCard";
 import { SEO } from "@/components/SEO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
-import { Data527Ad } from "@/components/ads/Data527Ad";
+import { YllixAd } from "@/components/ads/YllixAd";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,6 +18,9 @@ const Index = () => {
   const { data: latestSeriesData, isLoading: isLatestLoading } = useSeriesWithLatestChapters(12);
   const featuredSeries = featuredData || [];
   const latestSeries = latestSeriesData || [];
+  const yllixScriptSrc = import.meta.env.VITE_YLLIX_SCRIPT_SRC;
+  const yllixHomeBannerZone = import.meta.env.VITE_YLLIX_HOME_BANNER_ZONE;
+  const yllixHomeSidebarZone = import.meta.env.VITE_YLLIX_HOME_SIDEBAR_ZONE;
 
   // Secret URL parameter access: ?access=bntoonadmin
   useEffect(() => {
@@ -66,12 +69,11 @@ const Index = () => {
 
               {/* Ad between Featured and Latest Updates - 468x60 Banner */}
               <div className="my-6 flex justify-center">
-                <Data527Ad
+                <YllixAd
                   width={468}
                   height={60}
-                  dataClass="jf93c9f9f58"
-                  dataDomain="//data527.click"
-                  dataAffQuery="/16a22f324d5687c1f7a4/f93c9f9f58/?placementName=MiniBanner"
+                  zoneId={yllixHomeBannerZone}
+                  scriptSrc={yllixScriptSrc}
                   placementId="home-featured-banner"
                 />
               </div>
@@ -140,13 +142,13 @@ const Index = () => {
             <div className="space-y-6">
               <PopularSidebar />
               {/* Sidebar Ad between Popular and Join Us */}
-              <Data527Ad
+              <YllixAd
                 width={0}
                 height={0}
-                dataClass="m5afd89751f"
-                dataDomain="//data527.click"
-                dataAffQuery="/5fbf3d48481d384a64a7/5afd89751f/?placementName=LargeBanner"
+                zoneId={yllixHomeSidebarZone}
+                scriptSrc={yllixScriptSrc}
                 placementId="home-sidebar"
+                lazy
               />
               <JoinUsCard />
             </div>

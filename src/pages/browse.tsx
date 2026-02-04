@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { Data527Ad } from "@/components/ads/Data527Ad";
+import { YllixAd } from "@/components/ads/YllixAd";
 
 const Browse = () => {
   const {
@@ -23,6 +23,8 @@ const Browse = () => {
 
   const { data: genres, isLoading: genresLoading } = useGenres();
   const { data: seriesGenresMap, isLoading: loadingGenreMap } = useSeriesGenresMap();
+  const yllixScriptSrc = import.meta.env.VITE_YLLIX_SCRIPT_SRC;
+  const yllixBrowseLeaderboardZone = import.meta.env.VITE_YLLIX_BROWSE_LEADERBOARD_ZONE;
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
@@ -72,12 +74,11 @@ const Browse = () => {
 
         {/* Leaderboard Ad – 728x90 between description and genre filter */}
         <div className="my-6 flex justify-center overflow-x-auto">
-          <Data527Ad
+          <YllixAd
             width={728}
             height={90}
-            dataClass="sfb45f70481"
-            dataDomain="//data527.click"
-            dataAffQuery="/a4127c19028b6c01ba5c/fb45f70481/?placementName=LargeBanner"
+            zoneId={yllixBrowseLeaderboardZone}
+            scriptSrc={yllixScriptSrc}
             placementId="browse-leaderboard"
           />
         </div>
