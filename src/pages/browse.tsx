@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { BookOpen, X, Filter, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { AdUnit } from "@/components/ads/AdUnit";
+import { Data527Ad } from "@/components/ads/Data527Ad";
 
 const Browse = () => {
   const {
@@ -72,10 +72,12 @@ const Browse = () => {
 
         {/* Leaderboard Ad – 728x90 between description and genre filter */}
         <div className="my-6 flex justify-center overflow-x-auto">
-          <AdUnit
-            adKey="55df5565f644bb1aefe96eefc0393e90"
+          <Data527Ad
             width={728}
             height={90}
+            dataClass="sfb45f70481"
+            dataDomain="//data527.click"
+            dataAffQuery="/a4127c19028b6c01ba5c/fb45f70481/?placementName=LargeBanner"
             placementId="browse-leaderboard"
           />
         </div>
